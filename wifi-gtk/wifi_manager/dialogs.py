@@ -395,3 +395,39 @@ def show_forget_confirm_dialog(parent, ssid):
     dialog.destroy()
     
     return response == Gtk.ResponseType.YES
+
+def show_message_dialog(parent, title, message, msg_type=Gtk.MessageType.INFO):
+    """Show a simple message dialog"""
+    dialog = Gtk.MessageDialog(
+        parent, 0, msg_type,
+        Gtk.ButtonsType.OK, title
+    )
+    dialog.format_secondary_text(message)
+    dialog.run()
+    dialog.destroy()
+
+def show_progress_dialog(parent, title, message):
+    """Show a progress dialog (returns dialog for updating)"""
+    dialog = Gtk.Dialog(
+        title=title,
+        transient_for=parent,
+        modal=True
+    )
+    dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+    
+    label = Gtk.Label(label=message)
+    
+    progress = Gtk.ProgressBar()
+    progress.pulse()
+    
+    box = dialog.get_content_area()
+    box.pack_start(label, True, True, 10)
+    box.pack_start(progress, True, True, 0)
+    
+    box.show_all()
+    
+    def update_pulse():
+        progress.pulse()
+        return True
+    
+    return dialog, update_pulse
