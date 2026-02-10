@@ -1,0 +1,12 @@
+{
+  "name": "wifi-gtk-manager",
+  "version": "1.0.0",
+  "description": "GTK WiFi Manager using Node.js",
+  "main": "wifi-manager.js",
+  "scripts": {
+    "start": "node wifi-manager.js"
+  },
+  "dependencies": {
+    "node-gtk": "^3.0.0"
+  }
+}

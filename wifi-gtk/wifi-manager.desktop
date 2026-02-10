@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=WiFi GTK Manager
+Comment=GTK-based WiFi Network Manager with QR Code support
+Exec=python3 /home/nirantar/Downloads/nm-applet/wifi-gtk/wifi-manager.py
+Icon=network-wireless
+Terminal=false
+Type=Application
+Categories=Network;Settings;
+Keywords=wifi;wireless;network;manager;
