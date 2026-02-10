@@ -17,7 +17,9 @@ from .nmcli_utils import (
     disconnect_network,
     rescan_networks,
     get_live_speed,
-    format_speed
+    format_speed,
+    is_wifi_enabled,
+    set_wifi_enabled
 )
 from .dialogs import (
     show_qr_dialog,
@@ -27,7 +29,8 @@ from .dialogs import (
     show_forget_confirm_dialog,
     show_message_dialog,
     create_icon_image,
-    get_icon_for_signal
+    get_icon_for_signal,
+    get_show_live_speed
 )
 from .hotspot_dialog import show_hotspot_page
 
@@ -44,10 +47,11 @@ class WiFiManager(Gtk.Window):
         self.refresh_count = 0
         self.current_sort = SORT_SIGNAL
         self.in_hotspot_mode = False
-        self.show_live_speed = True
+        self.show_live_speed = get_show_live_speed()
         
         self._setup_ui()
         self._start_speed_monitor()
+        self.wifi_switch.set_active(is_wifi_enabled())
         self.refresh_networks()
     
     def _setup_ui(self):
@@ -97,6 +101,15 @@ class WiFiManager(Gtk.Window):
         btn_hotspot.connect("clicked", self._on_show_hotspot)
         header_box.pack_start(btn_hotspot, False, False, 0)
         
+        # WiFi toggle switch
+        wifi_label = Gtk.Label(label="WiFi:")
+        header_box.pack_start(wifi_label, False, False, 5)
+        
+        self.wifi_switch = Gtk.Switch()
+        self.wifi_switch.set_tooltip_text("Toggle WiFi")
+        self.wifi_switch.connect("state-set", self._on_wifi_toggle)
+        header_box.pack_start(self.wifi_switch, False, False, 0)
+        
         self.spinner = Gtk.Spinner()
         header_box.pack_start(self.spinner, False, False, 0)
         
@@ -130,7 +143,7 @@ class WiFiManager(Gtk.Window):
         btn_settings.set_tooltip_text("Settings")
         settings_icon = create_icon_image("preferences-system-symbolic")
         btn_settings.add(settings_icon)
-        btn_settings.connect("clicked", lambda w: show_settings_dialog(self))
+        btn_settings.connect("clicked", self._on_settings)
         header_box.pack_start(btn_settings, False, False, 0)
         
         self.status_label = Gtk.Label()
@@ -148,15 +161,15 @@ class WiFiManager(Gtk.Window):
         """Update speed display in header"""
         if not self.show_live_speed:
             self.speed_box.hide()
-            return True
-        
-        rx_speed, tx_speed = get_live_speed()
-        
-        rx_text = format_speed(rx_speed)
-        tx_text = format_speed(tx_speed)
-        
-        self.rx_label.set_markup(f"<small>↓{rx_text}</small>")
-        self.tx_label.set_markup(f"<small>↑{tx_text}</small>")
+        else:
+            self.speed_box.show()
+            rx_speed, tx_speed = get_live_speed()
+            
+            rx_text = format_speed(rx_speed)
+            tx_text = format_speed(tx_speed)
+            
+            self.rx_label.set_markup(f"<small>↓{rx_text}</small>")
+            self.tx_label.set_markup(f"<small>↑{tx_text}</small>")
         
         # Update current connection icon
         current = get_current_ssid()
@@ -280,6 +293,31 @@ class WiFiManager(Gtk.Window):
         if self.hotspot_page:
             self.hotspot_page._refresh_status()
     
+    def _on_wifi_toggle(self, widget, state):
+        """Handle WiFi toggle switch"""
+        self.wifi_switch.set_sensitive(False)
+        
+        if set_wifi_enabled(state):
+            if state:
+                self._update_status("WiFi enabled - Scanning...")
+                GLib.timeout_add(300, lambda: self.refresh_networks(show_animation=True))
+            else:
+                self._update_status("WiFi disabled")
+                self.current_label.set_text(" WiFi Off")
+                self.store.clear()
+        else:
+            self._update_status("Failed to toggle WiFi")
+        
+        self.wifi_switch.set_sensitive(True)
+    
+    def _on_settings(self, widget):
+        """Handle settings button click"""
+        result = show_settings_dialog(self)
+        if result:
+            show_speed = result.get("show_speed", True)
+            self.show_live_speed = show_speed
+            self._update_speed_display()
+    
     def _set_refreshing(self, refreshing):
         """Update UI during refresh"""
         if refreshing:
@@ -366,6 +404,7 @@ class WiFiManager(Gtk.Window):
                 net['connected']
             ])
         
+        self.wifi_switch.set_active(is_wifi_enabled())
         self._set_refreshing(False)
         return False
     

@@ -318,3 +318,15 @@ def get_network_interface():
     except:
         pass
     return None
+
+def is_wifi_enabled():
+    """Check if WiFi is enabled"""
+    output, _ = run_cmd(["nmcli", "-t", "radio", "wifi"])
+    return output == "enabled"
+
+def set_wifi_enabled(enabled):
+    """Enable or disable WiFi"""
+    if enabled:
+        return run_cmd(["nmcli", "radio", "wifi", "on"])[1]
+    else:
+        return run_cmd(["nmcli", "radio", "wifi", "off"])[1]

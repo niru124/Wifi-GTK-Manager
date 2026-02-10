@@ -7,6 +7,7 @@ from gi.repository import Gtk, GdkPixbuf
 
 from .nmcli_utils import (
     get_current_ssid,
+    get_current_connection_name,
     get_password,
     get_security,
     get_auto_connect,
@@ -21,6 +22,43 @@ from .nmcli_utils import (
 from .qr_utils import generate_qr_code, get_qr_file
 
 QR_SIZE = 250
+
+CONFIG_DIR = os.path.expanduser("~/.config/wifi-manager")
+CONFIG_FILE = os.path.join(CONFIG_DIR, "settings.conf")
+
+def load_settings():
+    """Load settings from config file"""
+    settings = {"show_live_speed": True}
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                for line in f:
+                    if "=" in line:
+                        key, value = line.strip().split("=", 1)
+                        if value.lower() == "true":
+                            settings[key] = True
+                        elif value.lower() == "false":
+                            settings[key] = False
+                        else:
+                            settings[key] = value
+        except:
+            pass
+    return settings
+
+def save_settings(settings):
+    """Save settings to config file"""
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    try:
+        with open(CONFIG_FILE, "w") as f:
+            for key, value in settings.items():
+                f.write(f"{key}={value}\n")
+        return True
+    except:
+        return False
+
+def get_show_live_speed():
+    """Get whether to show live speed"""
+    return load_settings().get("show_live_speed", True)
 
 # Icon names for network status
 ICON_NETWORK = "network-wireless-symbolic"
@@ -104,8 +142,9 @@ def show_qr_dialog(parent, ssid, password, security):
 
 def show_connection_info_dialog(parent):
     """Show detailed connection information"""
-    current = get_current_ssid()
-    if not current:
+    current_ssid = get_current_ssid()
+    conn_name = get_current_connection_name()
+    if not current_ssid:
         dialog = Gtk.MessageDialog(
             parent, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Not Connected"
@@ -120,13 +159,13 @@ def show_connection_info_dialog(parent):
     details = get_connection_details()
     rate, signal = get_connection_speed()
     ip_info = get_ip_info()
-    password = get_password(current)
-    security = get_security(current)
+    password = get_password(conn_name)
+    security = get_security(current_ssid)
     autoconnect = details.get("autoconnect", False)
     rx_speed, tx_speed = get_live_speed()
     
     dialog = Gtk.Dialog(
-        title=f"Connection Details - {current}",
+        title=f"Connection Details - {current_ssid}",
         transient_for=parent,
         modal=True
     )
@@ -144,7 +183,7 @@ def show_connection_info_dialog(parent):
     
     # Network name header
     label_title = Gtk.Label()
-    label_title.set_markup(f"<b><big>{current}</big></b>")
+    label_title.set_markup(f"<b><big>{current_ssid}</big></b>")
     label_title.set_margin_bottom(10)
     box.pack_start(label_title, False, False, 0)
     
@@ -271,21 +310,23 @@ def show_connection_info_dialog(parent):
     
     if response == Gtk.ResponseType.APPLY:
         new_state = not autoconnect
-        set_auto_connect(current, new_state)
+        set_auto_connect(conn_name, new_state)
     elif response == Gtk.ResponseType.HELP:
-        show_qr_dialog(parent, current, password, security)
+        show_qr_dialog(parent, current_ssid, password, security)
     
     dialog.destroy()
 
 def show_settings_dialog(parent):
     """Show settings dialog"""
-    current = get_current_ssid()
+    current_ssid = get_current_ssid()
+    conn_name = get_current_connection_name()
     
     dialog = Gtk.Dialog(
         title="Settings",
         transient_for=parent,
         modal=True
     )
+    dialog.add_button("Save", Gtk.ResponseType.APPLY)
     dialog.add_button("Close", Gtk.ResponseType.CLOSE)
     dialog.set_default_size(400, 300)
     
@@ -301,18 +342,20 @@ def show_settings_dialog(parent):
     label.set_markup("<b>Auto-Connect</b>")
     box.pack_start(label, False, False, 10)
     
-    if current:
-        autoconnect = get_auto_connect(current)
+    autoconnect = False
+    autoconnect_changed = False
+    if conn_name:
+        autoconnect = get_auto_connect(conn_name)
         
         switch = Gtk.Switch()
         switch.set_active(autoconnect)
-        switch.connect("state-set", lambda w, s: set_auto_connect(current, s))
+        switch.set_name("autoconnect")
         
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         icon = create_icon_image("sync-symbolic")
         hbox.pack_start(icon, False, False, 0)
         
-        label_switch = Gtk.Label(label=f"Auto-connect to {current}")
+        label_switch = Gtk.Label(label=f"Auto-connect to {current_ssid}")
         label_switch.set_xalign(0)
         hbox.pack_start(label_switch, True, True, 0)
         hbox.pack_start(switch, False, False, 0)
@@ -335,13 +378,36 @@ def show_settings_dialog(parent):
     hbox_speed.pack_start(label_speed_set, True, True, 0)
     
     switch_speed = Gtk.Switch()
-    switch_speed.set_active(True)
+    show_speed = load_settings().get("show_live_speed", True)
+    switch_speed.set_active(show_speed)
+    switch_speed.set_name("show_speed")
     hbox_speed.pack_start(switch_speed, False, False, 0)
     box.pack_start(hbox_speed, False, False, 10)
     
     box.show_all()
-    dialog.run()
+    
+    result = {"show_speed": show_speed}
+    
+    response = dialog.run()
+    
+    if response == Gtk.ResponseType.APPLY:
+        settings = load_settings()
+        
+        # Save auto-connect
+        if conn_name:
+            new_autoconnect = switch.get_active()
+            if new_autoconnect != autoconnect:
+                set_auto_connect(conn_name, new_autoconnect)
+        
+        # Save live speed setting
+        new_show_speed = switch_speed.get_active()
+        settings["show_live_speed"] = new_show_speed
+        save_settings(settings)
+        
+        result["show_speed"] = new_show_speed
+    
     dialog.destroy()
+    return result
 
 def show_password_dialog(parent, ssid):
     """Show password input dialog"""
