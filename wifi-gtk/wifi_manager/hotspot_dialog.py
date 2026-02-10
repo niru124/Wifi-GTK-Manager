@@ -36,7 +36,7 @@ class HotspotPage(Gtk.Box):
         self.pack_start(header_box, False, False, 0)
         
         btn_back = Gtk.Button.new_with_label("← Back")
-        btn_back.connect("clicked", self.back_callback)
+        btn_back.connect("clicked", lambda w: self.back_callback())
         header_box.pack_start(btn_back, False, False, 0)
         
         self.lbl_title = Gtk.Label()

@@ -17,8 +17,7 @@ from .nmcli_utils import (
     disconnect_network,
     rescan_networks,
     get_live_speed,
-    format_speed,
-    get_icon_for_signal
+    format_speed
 )
 from .dialogs import (
     show_qr_dialog,
@@ -27,7 +26,8 @@ from .dialogs import (
     show_password_dialog,
     show_forget_confirm_dialog,
     show_message_dialog,
-    create_icon_image
+    create_icon_image,
+    get_icon_for_signal
 )
 from .hotspot_dialog import show_hotspot_page
 
