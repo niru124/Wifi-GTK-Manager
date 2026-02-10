@@ -13,7 +13,8 @@ from .nmcli_utils import (
     set_auto_connect,
     forget_network,
     get_connection_details,
-    get_connection_speed
+    get_connection_speed,
+    get_ip_info
 )
 from .qr_utils import generate_qr_code, get_qr_file
 
@@ -82,6 +83,7 @@ def show_connection_info_dialog(parent):
     
     details = get_connection_details()
     rate, signal = get_connection_speed()
+    ip_info = get_ip_info()
     password = get_password(current)
     security = get_security(current)
     autoconnect = details.get("autoconnect", False)
@@ -94,7 +96,7 @@ def show_connection_info_dialog(parent):
     dialog.add_button("Close", Gtk.ResponseType.CLOSE)
     dialog.add_button("Toggle Auto-Connect", Gtk.ResponseType.APPLY)
     dialog.add_button("Show QR", Gtk.ResponseType.HELP)
-    dialog.set_default_size(400, 350)
+    dialog.set_default_size(420, 400)
     
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
     box.set_margin_start(20)
@@ -103,29 +105,98 @@ def show_connection_info_dialog(parent):
     box.set_margin_bottom(20)
     dialog.get_content_area().add(box)
     
+    # Network name header
     label_title = Gtk.Label()
     label_title.set_markup(f"<b><big>{current}</big></b>")
-    box.pack_start(label_title, False, False, 10)
+    label_title.set_margin_bottom(10)
+    box.pack_start(label_title, False, False, 0)
     
-    sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-    box.pack_start(sep, False, False, 5)
+    # Network info section
+    frame_network = Gtk.Frame(label="<b>Network</b>")
+    frame_network.set_margin_bottom(10)
+    box.pack_start(frame_network, False, False, 0)
     
-    info = ""
-    info += f"<b>Security:</b> {security}\n"
-    info += f"<b>Signal:</b> {signal}% ({details.get('signal_dbm', 'N/A')} dBm)\n"
-    info += f"<b>Speed:</b> {rate}\n"
-    info += f"<b>Auto-connect:</b> {'Enabled' if autoconnect else 'Disabled'}\n"
-    info += f"\n<b>IP Address:</b> {details.get('ip', 'N/A')}\n"
-    info += f"<b>Gateway:</b> {details.get('gateway', 'N/A')}\n"
-    info += f"<b>DNS:</b> {details.get('dns', 'N/A')}\n"
+    box_network = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+    box_network.set_margin_start(15)
+    box_network.set_margin_end(15)
+    box_network.set_margin_top(10)
+    box_network.set_margin_bottom(10)
+    frame_network.add(box_network)
     
+    lbl = Gtk.Label()
+    lbl.set_markup(f"🔒 <b>Security:</b> {security}")
+    lbl.set_xalign(0)
+    box_network.pack_start(lbl, False, False, 0)
+    
+    lbl = Gtk.Label()
+    lbl.set_markup(f"📶 <b>Signal:</b> {signal}% ({details.get('signal_dbm', 'N/A')} dBm)")
+    lbl.set_xalign(0)
+    box_network.pack_start(lbl, False, False, 0)
+    
+    lbl = Gtk.Label()
+    lbl.set_markup(f"⚡ <b>Speed:</b> {rate}")
+    lbl.set_xalign(0)
+    box_network.pack_start(lbl, False, False, 0)
+    
+    lbl = Gtk.Label()
+    auto_status = "Enabled" if autoconnect else "Disabled"
+    lbl.set_markup(f"🔄 <b>Auto-connect:</b> {auto_status}")
+    lbl.set_xalign(0)
+    box_network.pack_start(lbl, False, False, 0)
+    
+    # IP Address section
+    frame_ip = Gtk.Frame(label="<b>IP Address</b>")
+    frame_ip.set_margin_bottom(10)
+    box.pack_start(frame_ip, False, False, 0)
+    
+    box_ip = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+    box_ip.set_margin_start(15)
+    box_ip.set_margin_end(15)
+    box_ip.set_margin_top(10)
+    box_ip.set_margin_bottom(10)
+    frame_ip.add(box_ip)
+    
+    lbl = Gtk.Label()
+    lbl.set_markup(f"🏠 <b>Local IP:</b> {ip_info.get('local_ip', 'N/A')}")
+    lbl.set_xalign(0)
+    box_ip.pack_start(lbl, False, False, 0)
+    
+    lbl = Gtk.Label()
+    lbl.set_markup(f"🚪 <b>Gateway:</b> {ip_info.get('gateway', 'N/A')}")
+    lbl.set_xalign(0)
+    box_ip.pack_start(lbl, False, False, 0)
+    
+    lbl = Gtk.Label()
+    lbl.set_markup(f"🌐 <b>DNS 1:</b> {ip_info.get('dns1', 'N/A')}")
+    lbl.set_xalign(0)
+    box_ip.pack_start(lbl, False, False, 0)
+    
+    lbl = Gtk.Label()
+    lbl.set_markup(f"🌐 <b>DNS 2:</b> {ip_info.get('dns2', 'N/A')}")
+    lbl.set_xalign(0)
+    box_ip.pack_start(lbl, False, False, 0)
+    
+    lbl = Gtk.Label()
+    lbl.set_markup(f"🔌 <b>Interface:</b> {ip_info.get('interface', 'N/A')}")
+    lbl.set_xalign(0)
+    box_ip.pack_start(lbl, False, False, 0)
+    
+    # Password section (if available)
     if password:
-        info += f"\n<b>Password:</b> {password}"
-    
-    label_info = Gtk.Label()
-    label_info.set_markup(info)
-    label_info.set_xalign(0)
-    box.pack_start(label_info, False, False, 5)
+        frame_pass = Gtk.Frame(label="<b>Password</b>")
+        box.pack_start(frame_pass, False, False, 0)
+        
+        box_pass = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        box_pass.set_margin_start(15)
+        box_pass.set_margin_end(15)
+        box_pass.set_margin_top(10)
+        box_pass.set_margin_bottom(10)
+        frame_pass.add(box_pass)
+        
+        lbl = Gtk.Label(label=password)
+        lbl.set_selectable(True)
+        lbl.set_xalign(0)
+        box_pass.pack_start(lbl, False, False, 0)
     
     box.show_all()
     

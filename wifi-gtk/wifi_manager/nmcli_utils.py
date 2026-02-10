@@ -168,3 +168,79 @@ def get_connection_details():
             details["autoconnect"] = line.split(":")[1] == "yes"
     
     return details
+
+def get_ip_info():
+    """Get comprehensive IP information"""
+    info = {
+        "local_ip": "N/A",
+        "gateway": "N/A",
+        "dns1": "N/A",
+        "dns2": "N/A",
+        "subnet": "N/A",
+        "interface": "N/A"
+    }
+    
+    # Get default route info
+    try:
+        result = subprocess.run(
+            ["ip", "route", "show", "default"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in result.stdout.split("\n"):
+            if "default" in line:
+                parts = line.split()
+                for i, p in enumerate(parts):
+                    if p == "dev" and i + 1 < len(parts):
+                        info["interface"] = parts[i + 1]
+                    elif p == "via" and i + 1 < len(parts):
+                        info["gateway"] = parts[i + 1]
+    except:
+        pass
+    
+    # Get IP address for interface
+    iface = info["interface"]
+    if iface:
+        try:
+            result = subprocess.run(
+                ["ip", "addr", "show", iface],
+                capture_output=True, text=True, timeout=5
+            )
+            for line in result.stdout.split("\n"):
+                if "inet " in line:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        info["local_ip"] = parts[1]
+                        break
+        except:
+            pass
+    
+    # Get DNS servers
+    try:
+        with open("/etc/resolv.conf", "r") as f:
+            for line in f:
+                if line.startswith("nameserver"):
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        if info["dns1"] == "N/A":
+                            info["dns1"] = parts[1]
+                        elif info["dns2"] == "N/A":
+                            info["dns2"] = parts[1]
+                            break
+    except:
+        pass
+    
+    # Get from nmcli as fallback
+    details = get_connection_details()
+    if details.get("ip") and info["local_ip"] == "N/A":
+        info["local_ip"] = details.get("ip", "N/A")
+    if details.get("gateway") and info["gateway"] == "N/A":
+        info["gateway"] = details.get("gateway", "N/A")
+    if details.get("dns") and info["dns1"] == "N/A":
+        dns = details.get("dns", "")
+        dns_parts = dns.split(",")
+        if len(dns_parts) >= 1:
+            info["dns1"] = dns_parts[0].strip()
+        if len(dns_parts) >= 2:
+            info["dns2"] = dns_parts[1].strip()
+    
+    return info
