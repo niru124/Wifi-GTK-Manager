@@ -342,3 +342,56 @@ def show_settings_dialog(parent):
     box.show_all()
     dialog.run()
     dialog.destroy()
+
+def show_password_dialog(parent, ssid):
+    """Show password input dialog"""
+    dialog = Gtk.Dialog(
+        title="Password",
+        transient_for=parent,
+        modal=True
+    )
+    dialog.add_button("Connect", Gtk.ResponseType.OK)
+    dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+    
+    entry = Gtk.Entry()
+    entry.set_visibility(False)
+    entry.set_placeholder_text("Enter password")
+    
+    box = dialog.get_content_area()
+    box.pack_start(Gtk.Label(label=f"Connect to {ssid}:"), True, True, 10)
+    box.pack_start(entry, True, True, 0)
+    box.show_all()
+    
+    response = dialog.run()
+    password = entry.get_text() if response == Gtk.ResponseType.OK else ""
+    dialog.destroy()
+    
+    return password if response == Gtk.ResponseType.OK else None
+
+def show_forget_confirm_dialog(parent, ssid):
+    """Show confirmation dialog before forgetting a network"""
+    dialog = Gtk.Dialog(
+        title="Forget Network",
+        transient_for=parent,
+        modal=True
+    )
+    dialog.add_button("Forget", Gtk.ResponseType.YES)
+    dialog.add_button("Cancel", Gtk.ResponseType.NO)
+    dialog.set_default_size(350, 150)
+    
+    box = dialog.get_content_area()
+    box.pack_start(
+        Gtk.Label(label=f"Are you sure you want to forget '{ssid}'?"),
+        True, True, 20
+    )
+    box.pack_start(
+        Gtk.Label(label="This will remove the saved network profile."),
+        True, True, 5
+    )
+    
+    box.show_all()
+    
+    response = dialog.run()
+    dialog.destroy()
+    
+    return response == Gtk.ResponseType.YES
