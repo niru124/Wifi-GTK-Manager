@@ -244,3 +244,77 @@ def get_ip_info():
             info["dns2"] = dns_parts[1].strip()
     
     return info
+
+# Live speed monitoring
+_last_rx = 0
+_last_tx = 0
+_last_time = 0
+
+def get_live_speed():
+    """Get live TX/RX speed in bytes per second"""
+    global _last_rx, _last_tx, _last_time
+    
+    iface = get_network_interface()
+    if not iface:
+        return 0, 0
+    
+    rx_path = f"/sys/class/net/{iface}/statistics/rx_bytes"
+    tx_path = f"/sys/class/net/{iface}/statistics/tx_bytes"
+    
+    try:
+        with open(rx_path, "r") as f:
+            rx = int(f.read().strip())
+        with open(tx_path, "r") as f:
+            tx = int(f.read().strip())
+    except:
+        return 0, 0
+    
+    import time
+    current_time = time.time()
+    
+    if _last_time == 0:
+        _last_rx = rx
+        _last_tx = tx
+        _last_time = current_time
+        return 0, 0
+    
+    time_delta = current_time - _last_time
+    if time_delta < 0.1:
+        return 0, 0
+    
+    rx_speed = int((rx - _last_rx) / time_delta)
+    tx_speed = int((tx - _last_tx) / time_delta)
+    
+    _last_rx = rx
+    _last_tx = tx
+    _last_time = current_time
+    
+    return rx_speed, tx_speed
+
+def format_speed(bytes_per_sec):
+    """Format speed to human readable"""
+    if bytes_per_sec >= 1073741824:
+        return f"{bytes_per_sec / 1073741824:.1f} GB/s"
+    elif bytes_per_sec >= 1048576:
+        return f"{bytes_per_sec / 1048576:.1f} MB/s"
+    elif bytes_per_sec >= 1024:
+        return f"{bytes_per_sec / 1024:.1f} KB/s"
+    else:
+        return f"{bytes_per_sec} B/s"
+
+def get_network_interface():
+    """Get the active network interface"""
+    try:
+        result = subprocess.run(
+            ["ip", "route", "show", "default"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in result.stdout.split("\n"):
+            if "default" in line:
+                parts = line.split()
+                for i, p in enumerate(parts):
+                    if p == "dev" and i + 1 < len(parts):
+                        return parts[i + 1]
+    except:
+        pass
+    return None

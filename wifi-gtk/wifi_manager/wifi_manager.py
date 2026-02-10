@@ -15,7 +15,10 @@ from .nmcli_utils import (
     get_password,
     connect_network,
     disconnect_network,
-    rescan_networks
+    rescan_networks,
+    get_live_speed,
+    format_speed,
+    get_icon_for_signal
 )
 from .dialogs import (
     show_qr_dialog,
@@ -23,7 +26,8 @@ from .dialogs import (
     show_settings_dialog,
     show_password_dialog,
     show_forget_confirm_dialog,
-    show_message_dialog
+    show_message_dialog,
+    create_icon_image
 )
 from .hotspot_dialog import show_hotspot_page
 
@@ -40,8 +44,10 @@ class WiFiManager(Gtk.Window):
         self.refresh_count = 0
         self.current_sort = SORT_SIGNAL
         self.in_hotspot_mode = False
+        self.show_live_speed = True
         
         self._setup_ui()
+        self._start_speed_monitor()
         self.refresh_networks()
     
     def _setup_ui(self):
@@ -83,17 +89,47 @@ class WiFiManager(Gtk.Window):
         header_box.set_margin_top(10)
         parent.pack_start(header_box, False, False, 0)
         
-        btn_hotspot = Gtk.Button.new_with_label("📶 Hotspot")
+        # Hotspot button with icon
+        btn_hotspot = Gtk.Button()
+        btn_hotspot.set_tooltip_text("Hotspot")
+        hotspot_icon = create_icon_image("network-wireless-hotspot-symbolic")
+        btn_hotspot.add(hotspot_icon)
         btn_hotspot.connect("clicked", self._on_show_hotspot)
         header_box.pack_start(btn_hotspot, False, False, 0)
         
         self.spinner = Gtk.Spinner()
         header_box.pack_start(self.spinner, False, False, 0)
         
+        # Current connection with icon
+        self.current_icon = create_icon_image("network-wireless-symbolic", 16)
+        header_box.pack_start(self.current_icon, False, False, 0)
+        
         self.current_label = Gtk.Label()
         header_box.pack_start(self.current_label, True, True, 0)
         
-        btn_settings = Gtk.Button.new_with_label("⚙ Settings")
+        # Live speed display
+        self.speed_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        header_box.pack_start(self.speed_box, False, False, 0)
+        
+        rx_icon = create_icon_image("go-down-symbolic", 12)
+        self.speed_box.pack_start(rx_icon, False, False, 0)
+        
+        self.rx_label = Gtk.Label()
+        self.rx_label.set_markup("<small>↓0 B/s</small>")
+        self.speed_box.pack_start(self.rx_label, False, False, 0)
+        
+        tx_icon = create_icon_image("go-up-symbolic", 12)
+        self.speed_box.pack_start(tx_icon, False, False, 0)
+        
+        self.tx_label = Gtk.Label()
+        self.tx_label.set_markup("<small>↑0 B/s</small>")
+        self.speed_box.pack_start(self.tx_label, False, False, 0)
+        
+        # Settings button with icon
+        btn_settings = Gtk.Button()
+        btn_settings.set_tooltip_text("Settings")
+        settings_icon = create_icon_image("preferences-system-symbolic")
+        btn_settings.add(settings_icon)
         btn_settings.connect("clicked", lambda w: show_settings_dialog(self))
         header_box.pack_start(btn_settings, False, False, 0)
         
@@ -103,6 +139,37 @@ class WiFiManager(Gtk.Window):
         self.status_label.set_margin_start(10)
         self.status_label.set_margin_end(10)
         parent.pack_start(self.status_label, False, False, 5)
+    
+    def _start_speed_monitor(self):
+        """Start live speed monitoring"""
+        GLib.timeout_add(1000, self._update_speed_display)
+    
+    def _update_speed_display(self):
+        """Update speed display in header"""
+        if not self.show_live_speed:
+            self.speed_box.hide()
+            return True
+        
+        rx_speed, tx_speed = get_live_speed()
+        
+        rx_text = format_speed(rx_speed)
+        tx_text = format_speed(tx_speed)
+        
+        self.rx_label.set_markup(f"<small>↓{rx_text}</small>")
+        self.tx_label.set_markup(f"<small>↑{tx_text}</small>")
+        
+        # Update current connection icon
+        current = get_current_ssid()
+        if current:
+            self.current_icon.set_from_icon_name(
+                "network-wireless-symbolic", Gtk.IconSize.BUTTON
+            )
+        else:
+            self.current_icon.set_from_icon_name(
+                "network-wireless-disconnected-symbolic", Gtk.IconSize.BUTTON
+            )
+        
+        return True
     
     def _setup_main_network_list(self, parent):
         """Setup the network list treeview"""
@@ -158,27 +225,51 @@ class WiFiManager(Gtk.Window):
         btn_box.set_margin_bottom(10)
         parent.pack_start(btn_box, False, False, 5)
         
-        self.btn_refresh = Gtk.Button.new_with_label("🔄 Refresh")
+        # Refresh button
+        self.btn_refresh = Gtk.Button()
+        self.btn_refresh.set_tooltip_text("Refresh")
+        refresh_icon = create_icon_image("view-refresh-symbolic")
+        self.btn_refresh.add(refresh_icon)
         self.btn_refresh.connect("clicked", self._on_refresh)
         btn_box.pack_start(self.btn_refresh, True, True, 0)
         
-        btn_connect = Gtk.Button.new_with_label("🔗 Connect")
+        # Connect button
+        btn_connect = Gtk.Button()
+        btn_connect.set_tooltip_text("Connect")
+        connect_icon = create_icon_image("network-connect-symbolic")
+        btn_connect.add(connect_icon)
         btn_connect.connect("clicked", self._on_connect)
         btn_box.pack_start(btn_connect, True, True, 0)
         
-        btn_disconnect = Gtk.Button.new_with_label("❌ Disconnect")
+        # Disconnect button
+        btn_disconnect = Gtk.Button()
+        btn_disconnect.set_tooltip_text("Disconnect")
+        disconnect_icon = create_icon_image("network-disconnect-symbolic")
+        btn_disconnect.add(disconnect_icon)
         btn_disconnect.connect("clicked", self._on_disconnect)
         btn_box.pack_start(btn_disconnect, True, True, 0)
         
-        btn_qr = Gtk.Button.new_with_label("📱 QR Code")
+        # QR Code button
+        btn_qr = Gtk.Button()
+        btn_qr.set_tooltip_text("QR Code")
+        qr_icon = create_icon_image("barcode-symbolic")
+        btn_qr.add(qr_icon)
         btn_qr.connect("clicked", self._on_show_qr)
         btn_box.pack_start(btn_qr, True, True, 0)
         
-        btn_info = Gtk.Button.new_with_label("ℹ Details")
+        # Details button
+        btn_info = Gtk.Button()
+        btn_info.set_tooltip_text("Details")
+        info_icon = create_icon_image("dialog-information-symbolic")
+        btn_info.add(info_icon)
         btn_info.connect("clicked", lambda w: show_connection_info_dialog(self))
         btn_box.pack_start(btn_info, True, True, 0)
         
-        btn_forget = Gtk.Button.new_with_label("🗑 Forget")
+        # Forget button
+        btn_forget = Gtk.Button()
+        btn_forget.set_tooltip_text("Forget Network")
+        forget_icon = create_icon_image("edit-delete-symbolic")
+        btn_forget.add(forget_icon)
         btn_forget.connect("clicked", self._on_forget)
         btn_box.pack_start(btn_forget, True, True, 0)
     
@@ -193,11 +284,18 @@ class WiFiManager(Gtk.Window):
         """Update UI during refresh"""
         if refreshing:
             self.spinner.start()
-            self.btn_refresh.set_label("Scanning...")
+            # Create spinner button
+            self.btn_refresh.remove(self.btn_refresh.get_child())
+            spinner = Gtk.Spinner()
+            spinner.start()
+            self.btn_refresh.add(spinner)
             self.status_label.set_markup("<small><i>Scanning for networks...</i></small>")
         else:
             self.spinner.stop()
-            self.btn_refresh.set_label("🔄 Refresh")
+            # Restore refresh icon
+            self.btn_refresh.remove(self.btn_refresh.get_child())
+            refresh_icon = create_icon_image("view-refresh-symbolic")
+            self.btn_refresh.add(refresh_icon)
     
     def _update_status(self, message):
         """Update status label"""
@@ -254,10 +352,10 @@ class WiFiManager(Gtk.Window):
         networks = self._sort_networks(networks)
         
         if current:
-            self.current_label.set_text(f"📶 {current}")
+            self.current_label.set_text(f" {current}")
             self._update_status(f"Found {len(networks)} networks")
         else:
-            self.current_label.set_text("Not Connected")
+            self.current_label.set_text(" Not Connected")
             self._update_status(f"Found {len(networks)} networks")
         
         for net in networks:
@@ -372,7 +470,7 @@ class WiFiManager(Gtk.Window):
         ssid = model[iter][0]
         
         if show_forget_confirm_dialog(self, ssid):
-            from nmcli_utils import forget_network
+            from .nmcli_utils import forget_network
             if forget_network(ssid):
                 self._update_status(f"Forgot {ssid}")
                 GLib.timeout_add(
