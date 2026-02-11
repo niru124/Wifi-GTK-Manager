@@ -30,7 +30,7 @@ class HotspotPage(Gtk.Box):
         header_box.pack_start(btn_back, False, False, 0)
         
         lbl_title = Gtk.Label()
-        lbl_title.set_markup("<b><big>WiFi Hotspot</big></b>")
+        lbl_title.set_text("WiFi Hotspot")
         header_box.pack_start(lbl_title, True, True, 0)
         
         self.status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
