@@ -17,6 +17,7 @@ A native GTK3 WiFi manager with full NetworkManager integration, QR code support
 - **Hotspot Creation** - Native NetworkManager hotspot support
 - **Persistent Settings** - Preferences saved between sessions
 - **Custom Icons** - Bundled SVG icons for consistent look
+- **Refresh Networks** - Scan for available WiFi networks on demand
 
 ## Installation
 
@@ -49,13 +50,13 @@ python3 wifi-manager.py
 
 The application uses bundled SVG icons for consistent appearance:
 
-| Icon | File | Used For |
-|------|------|----------|
-| Hotspot | `hotspot-rectangles-symbolic.svg` | Hotspot button |
-| QR Code | `qr-code-scanner-symbolic.svg` | QR code button |
-| Connect | `plug-symbolic.svg` | Connect button |
-| Disconnect | `unplug-dots-symbolic.svg` | Disconnect button |
-| Refresh | `arrow-circular-bottom-right-symbolic.svg` | Refresh button |
+| Icon       | File                                       | Used For          |
+| ---------- | ------------------------------------------ | ----------------- |
+| Hotspot    | `hotspot-rectangles-symbolic.svg`          | Hotspot button    |
+| QR Code    | `qr-code-scanner-symbolic.svg`             | QR code button    |
+| Connect    | `plug-symbolic.svg`                        | Connect button    |
+| Disconnect | `unplug-dots-symbolic.svg`                 | Disconnect button |
+| Refresh    | `arrow-circular-bottom-right-symbolic.svg` | Refresh button    |
 
 Add more SVG icons to the `icons/` directory and update `SVG_ICON_MAP` in `dialogs.py`.
 
@@ -69,113 +70,37 @@ Add more SVG icons to the `icons/` directory and update `SVG_ICON_MAP` in `dialo
 
 ![QR Code](assets/QR.png)
 
-### Settings Dialog
-
-![Settings](assets/settings.png)
-
-## Features Overview
-
-### Main Window
+Generate QR codes for easy smartphone connection. Format:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│ [📶 Hotspot]  WiFi: [ON●]  📶 GrassHopper  [⚙ Settings] │
-├─────────────────────────────────────────────────────┤
-│ ↓125 KB/s  ↑45 KB/s                                │
-│ <small>Found 15 networks</small>                     │
-│ ┌───────────────────────────────────────────────┐  │
-│ │ Network        Signal  Security     Connected   │  │
-│ │ ● GrassHopper  80%     WPA2       ✓        │  │
-│ │ ○ FlowerPot    85%     WPA2                  │  │
-│ │ ○ DEBANGSHI   60%     WPA2                  │  │
-│ └───────────────────────────────────────────────┘  │
-│                                                      │
-│ Sort by: [Signal Strength ▼]                         │
-├─────────────────────────────────────────────────────┤
-│ [🔄 Refresh] [🔗 Connect] [❌ Disconnect] [📱 QR]     │
-│ [ℹ Details]  [🗑 Forget]                            │
-└─────────────────────────────────────────────────────┘
+WIFI:T:WPA2;S:NetworkName;P:Password;;
 ```
-
-### Header Bar Features
-
-| Element            | Description                                |
-|--------------------|--------------------------------------------|
-| Hotspot Button     | Opens dedicated hotspot configuration page |
-| WiFi Toggle        | Switch to enable/disable WiFi radio        |
-| Live Speed         | Real-time download/upload speeds           |
-| Current SSID       | Shows connected network name               |
-| Settings           | Opens preferences dialog                   |
 
 ### Settings Dialog
 
 ![Settings](assets/settings.png)
-
-Settings include:
-- **Auto-Connect** - Toggle automatic connection to current network
-- **Live Speed Display** - Show/hide TX/RX speeds in header
 
 Settings are saved to `~/.config/wifi-manager/settings.conf`
 
-### Connection Details
+## Features Overview
 
-![Connection Info](assets/info.png)
+### Header Bar Features
 
-View detailed information:
+| Element        | Description                                |
+| -------------- | ------------------------------------------ |
+| Hotspot Button | Opens dedicated hotspot configuration page |
+| WiFi Toggle    | Switch to enable/disable WiFi radio        |
+| Live Speed     | Real-time download/upload speeds           |
+| Current SSID   | Shows connected network name               |
+| Settings       | Opens preferences dialog                   |
+
+### View detailed information:
+
 - Network name (SSID)
 - Signal strength (%, dBm)
 - Connection speed
 - IP address, Gateway, DNS servers
 - Auto-connect status
-
-### QR Code Feature
-
-![QR Code](assets/QR.png)
-
-Generate QR codes for easy smartphone connection. Format:
-```
-WIFI:T:WPA2;S:NetworkName;P:Password;;
-```
-
-Scan with your phone camera to connect instantly.
-
-### Hotspot Page
-
-Click **[📶 Hotspot]** button to open dedicated hotspot configuration:
-
-```
-┌─────────────────────────────────────────────────────┐
-│ [← Back]  <b><big>WiFi Hotspot</big></b>              │
-├─────────────────────────────────────────────────────┤
-│ ○ <b>Status:</b> Not running                          │
-│                                                      │
-│ ┌─ Create Hotspot ─────────────────────────────────┐ │
-│ │ Network Name (SSID):                              │ │
-│ │ [MyHotspot__________________________________]    │ │
-│ │                                                  │ │
-│ │ Password:                                        │ │
-│ │ [**********_______________] [☐ Show password]   │ │
-│ │                                                  │ │
-│ │ [▶ Start Hotspot]                                │ │
-│ └──────────────────────────────────────────────────┘ │
-│                                                      │
-│ ┌─ Quick Actions ──────────────────────────────────┐ │
-│ │ This hotspot uses NetworkManager's built-in       │ │
-│ │ feature. Other devices can connect to share       │ │
-│ │ your internet connection.                         │ │
-│ │                                                  │ │
-│ │ [■ Stop Hotspot]                                 │ │
-└─────────────────────────────────────────────────────┘
-```
-
-### WiFi Toggle
-
-The WiFi toggle switch in the header allows you to:
-
-- **Turn OFF** - Disable WiFi radio (stops all WiFi connections)
-- **Turn ON** - Enable WiFi radio and automatically scan for networks
-
-When WiFi is turned on, the app automatically starts scanning for available networks.
 
 ## Project Structure
 
@@ -216,7 +141,3 @@ wifi-gtk/
 | nmcli          | nmcli           | nmcli          |
 | NetworkManager | network-manager | networkmanager |
 | QR Code        | qrencode        | qrencode       |
-
-## License
-
-MIT License
