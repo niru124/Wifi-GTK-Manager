@@ -26,6 +26,7 @@ from .nmcli_utils import (
 from .dialogs import (
     show_qr_dialog,
     show_connection_info_dialog,
+    show_settings_dialog,
     show_password_dialog,
     show_forget_confirm_dialog,
     show_message_dialog,
@@ -35,8 +36,6 @@ from .dialogs import (
     get_show_live_speed
 )
 from .hotspot_dialog import show_hotspot_page
-from .qr_page import show_qr_page
-from .settings_page import show_settings_page
 
 SORT_SIGNAL = "signal"
 SORT_NAME = "name"
@@ -72,14 +71,6 @@ class WiFiManager(Gtk.Window):
         self.hotspot_page = None
         self._create_hotspot_page()
         
-        # QR page
-        self.qr_page = None
-        self._create_qr_page()
-        
-        # Settings page
-        self.settings_page = None
-        self._create_settings_page()
-        
         self._setup_main_header(self.main_box)
         self._setup_main_network_list(self.main_box)
         self._setup_main_sort_box(self.main_box)
@@ -96,22 +87,6 @@ class WiFiManager(Gtk.Window):
         
         self.hotspot_page = show_hotspot_page(self, on_back)
         self.stack.add_named(self.hotspot_page, "hotspot")
-    
-    def _create_qr_page(self):
-        """Create the QR code page"""
-        def on_back():
-            self.stack.set_visible_child_name("wifi")
-        
-        self.qr_page = show_qr_page(self, on_back)
-        self.stack.add_named(self.qr_page, "qr")
-    
-    def _create_settings_page(self):
-        """Create the settings page"""
-        def on_back():
-            self.stack.set_visible_child_name("wifi")
-        
-        self.settings_page = show_settings_page(self, on_back)
-        self.stack.add_named(self.settings_page, "settings")
     
     def _setup_main_header(self, parent):
         """Setup the header section"""
@@ -356,7 +331,7 @@ class WiFiManager(Gtk.Window):
             self.spinner.stop()
             # Restore refresh icon
             self.btn_refresh.remove(self.btn_refresh.get_child())
-            refresh_icon = create_icon_image("view-refresh-symbolic")
+            refresh_icon = load_svg_icon("refresh", 16)
             self.btn_refresh.add(refresh_icon)
     
     def _update_status(self, message):
@@ -523,13 +498,44 @@ class WiFiManager(Gtk.Window):
     
     def _on_show_qr(self, widget):
         """Handle show QR button click"""
-        if self.qr_page:
-            self.qr_page.refresh()
-            self.stack.set_visible_child_name("qr")
+        selection = self.tree.get_selection()
+        model, iter = selection.get_selected()
+        
+        if iter:
+            ssid = model[iter][0]
+        else:
+            ssid = get_current_ssid()
+            if not ssid:
+                show_message_dialog(
+                    self, "No Network Selected",
+                    "No WiFi network is currently connected",
+                    Gtk.MessageType.WARNING
+                )
+                return
+        
+        password = get_password(ssid)
+        security = get_security(ssid)
+        self._update_status(f"<small>Generating QR for {ssid}...</small>")
+        
+        # Process pending GTK events to update status
+        while Gtk.events_pending():
+            Gtk.main_iteration_do(False)
+        
+        GLib.timeout_add(100, lambda: self._show_qr_and_update(ssid, password, security))
     
-    def _on_show_settings(self, widget):
+    def _show_qr_and_update(self, ssid, password, security):
+        """Show QR dialog and update status after"""
+        show_qr_dialog(self, ssid, password, security)
+        self._update_status("QR code closed")
+        return False
+    
+    def _on_settings(self, widget):
         """Handle settings button click"""
-        self.stack.set_visible_child_name("settings")
+        result = show_settings_dialog(self)
+        if result:
+            show_speed = result.get("show_speed", True)
+            self.show_live_speed = show_speed
+            self._update_speed_display()
     
     def _on_forget(self, widget):
         """Handle forget button click"""
