@@ -1,39 +1,28 @@
 # WiFi GTK Manager
 
-A native GTK3 WiFi manager with full NetworkManager integration, QR code support, and live speed monitoring.
-
-![Main Window](assets/homepage.png)
+A native GTK3 WiFi manager with full NetworkManager integration and QR code support.
 
 ## Features
 
-- **Scan & Connect** - List available WiFi networks with signal strength
-- **Live Speed Monitoring** - Real-time TX/RX speed display in header
-- **WiFi Toggle** - Turn WiFi on/off directly from the app
-- **QR Code Generation** - Share WiFi with smartphone camera scan
-- **Connection Details** - View IP, Gateway, DNS, Signal dBm
-- **Auto-Connect Toggle** - Enable/disable auto-connect for networks
-- **Forget Networks** - Remove saved network profiles
-- **Sort Networks** - By Signal Strength, Name, or Security
-- **Hotspot Creation** - Native NetworkManager hotspot support
-- **Persistent Settings** - Preferences saved between sessions
-- **Custom Icons** - Bundled SVG icons for consistent look
+- Scan and list available WiFi networks with signal strength
+- Connect to protected and open networks
+- View current connection details with speed/latency info
+- **Generate and display QR codes** for easy smartphone connection
+- Disconnect from networks
+- **Sort networks** by Signal Strength, Name, or Security
+- **Auto-connect toggle** in Settings
+- **Forget saved networks**
+- **Hotspot creation** with dedicated configuration page
+- Native GTK3 interface
 
 ## Installation
 
-### Ubuntu/Debian
-
+### Dependencies
 ```bash
 sudo apt install network-manager nmcli qrencode python3-gi python3-gi-cairo gir1.2-gtk-3.0
 ```
 
-### Arch Linux
-
-```bash
-sudo pacman -S networkmanager nmcli qrencode python-gobject gtk3
-```
-
 ### Setup
-
 ```bash
 cd /home/nirantar/Downloads/nm-applet/wifi-gtk
 chmod +x wifi-manager.py
@@ -41,47 +30,30 @@ chmod +x wifi-manager.py
 
 ## Usage
 
+### GUI Application (Recommended)
 ```bash
 python3 wifi-manager.py
 ```
 
-## Icons
+### YAD Version
+```bash
+chmod +x wifi-manager.sh
+./wifi-manager.sh
+```
 
-The application uses bundled SVG icons for consistent appearance:
-
-| Icon | File | Used For |
-|------|------|----------|
-| Hotspot | `hotspot-rectangles-symbolic.svg` | Hotspot button |
-| QR Code | `qr-code-scanner-symbolic.svg` | QR code button |
-| Connect | `plug-symbolic.svg` | Connect button |
-| Disconnect | `unplug-dots-symbolic.svg` | Disconnect button |
-| Refresh | `arrow-circular-bottom-right-symbolic.svg` | Refresh button |
-
-Add more SVG icons to the `icons/` directory and update `SVG_ICON_MAP` in `dialogs.py`.
-
-## Screenshots
-
-### Connection Info Dialog
-
-![Connection Info](assets/info.png)
-
-### QR Code Feature
-
-![QR Code](assets/QR.png)
-
-### Settings Dialog
-
-![Settings](assets/settings.png)
+### Zenity Version
+```bash
+chmod +x wifi-manager-zenity.sh
+./wifi-manager-zenity.sh
+```
 
 ## Features Overview
 
 ### Main Window
-
 ```
 ┌─────────────────────────────────────────────────────┐
-│ [📶 Hotspot]  WiFi: [ON●]  📶 GrassHopper  [⚙ Settings] │
+│ [📶 Hotspot]  📶 GrassHopper           [⚙ Settings] │
 ├─────────────────────────────────────────────────────┤
-│ ↓125 KB/s  ↑45 KB/s                                │
 │ <small>Found 15 networks</small>                     │
 │ ┌───────────────────────────────────────────────┐  │
 │ │ Network        Signal  Security     Connected   │  │
@@ -97,57 +69,15 @@ Add more SVG icons to the `icons/` directory and update `SVG_ICON_MAP` in `dialo
 └─────────────────────────────────────────────────────┘
 ```
 
-### Header Bar Features
+### Hotspot Creation
 
-| Element            | Description                                |
-|--------------------|--------------------------------------------|
-| Hotspot Button     | Opens dedicated hotspot configuration page |
-| WiFi Toggle        | Switch to enable/disable WiFi radio        |
-| Live Speed         | Real-time download/upload speeds           |
-| Current SSID       | Shows connected network name               |
-| Settings           | Opens preferences dialog                   |
-
-### Settings Dialog
-
-![Settings](assets/settings.png)
-
-Settings include:
-- **Auto-Connect** - Toggle automatic connection to current network
-- **Live Speed Display** - Show/hide TX/RX speeds in header
-
-Settings are saved to `~/.config/wifi-manager/settings.conf`
-
-### Connection Details
-
-![Connection Info](assets/info.png)
-
-View detailed information:
-- Network name (SSID)
-- Signal strength (%, dBm)
-- Connection speed
-- IP address, Gateway, DNS servers
-- Auto-connect status
-
-### QR Code Feature
-
-![QR Code](assets/QR.png)
-
-Generate QR codes for easy smartphone connection. Format:
-```
-WIFI:T:WPA2;S:NetworkName;P:Password;;
-```
-
-Scan with your phone camera to connect instantly.
-
-### Hotspot Page
-
-Click **[📶 Hotspot]** button to open dedicated hotspot configuration:
+Click **[📶 Hotspot]** button to open dedicated hotspot page:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ [← Back]  <b><big>WiFi Hotspot</big></b>              │
+│ [← Back]  <b><big>Hotspot Configuration</big></b>      │
 ├─────────────────────────────────────────────────────┤
-│ ○ <b>Status:</b> Not running                          │
+│ 🔴 <b>Status:</b> Not running                          │
 │                                                      │
 │ ┌─ Create Hotspot ─────────────────────────────────┐ │
 │ │ Network Name (SSID):                              │ │
@@ -155,67 +85,103 @@ Click **[📶 Hotspot]** button to open dedicated hotspot configuration:
 │ │                                                  │ │
 │ │ Password:                                        │ │
 │ │ [**********_______________] [☐ Show password]   │ │
+│ │                              [☐ Random password]│ │
 │ │                                                  │ │
-│ │ [▶ Start Hotspot]                                │ │
+│ │ Band: [2.4 GHz ▼]                               │ │
+│ │ Channel: [Auto ▼]                               │ │
+│ │ Interface: [wlan0 ▼]                            │ │
+│ │                                                  │ │
+│ │ [▶ Start Hotspot] [■ Stop Hotspot] [💾 Save]    │ │
 │ └──────────────────────────────────────────────────┘ │
 │                                                      │
-│ ┌─ Quick Actions ──────────────────────────────────┐ │
-│ │ This hotspot uses NetworkManager's built-in       │ │
-│ │ feature. Other devices can connect to share       │ │
-│ │ your internet connection.                         │ │
+│ ┌─ Saved Profiles ─────────────────────────────────┐ │
+│ │ Profile Name      SSID                           │ │
+│ │ hotspot-MyHotspot MyHotspot                      │ │
 │ │                                                  │ │
-│ │ [■ Stop Hotspot]                                 │ │
+│ │ [▶ Activate] [🗑 Delete]                        │ │
+│ │                                                  │ │
+│ │ Quick Start: [◉ Turn On] [○ Turn Off]           │ │
 └─────────────────────────────────────────────────────┘
 ```
 
-### WiFi Toggle
+### Hotspot Options
 
-The WiFi toggle switch in the header allows you to:
+| Option | Description |
+|--------|-------------|
+| **Network Name** | SSID for your hotspot |
+| **Password** | WPA2 password (min 8 chars) |
+| **Show Password** | Toggle password visibility |
+| **Random Password** | Generate secure random password |
+| **Band** | 2.4 GHz, 5 GHz, or both |
+| **Channel** | Specific channel or Auto |
+| **Interface** | WiFi interface to use |
+| **Start** | Launch the hotspot immediately |
+| **Stop** | Shutdown running hotspot |
+| **Save Profile** | Save configuration for later use |
 
-- **Turn OFF** - Disable WiFi radio (stops all WiFi connections)
-- **Turn ON** - Enable WiFi radio and automatically scan for networks
+### Quick Actions
 
-When WiFi is turned on, the app automatically starts scanning for available networks.
+- **◉ Turn On** - Start last used hotspot
+- **○ Turn Off** - Stop running hotspot
+- **Activate** - Use saved profile
+- **Delete** - Remove saved profile
+
+### Settings
+
+Click **[⚙ Settings]** to:
+- Toggle auto-connect for current network
+- View saved network profiles
+
+### Connection Details
+
+Click **[ℹ Details]** to see:
+- Signal strength (%, dBm)
+- Connection speed
+- IP address, Gateway, DNS
+- Auto-connect status
+
+### Forget Networks
+
+- Select any saved network
+- Click "Forget" to remove profile
+
+## QR Code Feature
+
+The app generates WiFi QR codes using the standard format:
+```
+WIFI:T:WPA2;S:NetworkName;P:Password;;
+```
+
+Simply scan with your smartphone camera to connect!
 
 ## Project Structure
 
 ```
 wifi-gtk/
-├── wifi-manager.py              # Main GTK3 application
-├── wifi_manager/                 # Python package
+├── wifi-manager.py              # Launcher script
+├── wifi_manager/                 # Main package
 │   ├── __init__.py            # Package init
 │   ├── wifi_manager.py         # Main window
-│   ├── nmcli_utils.py          # nmcli wrappers
+│   ├── nmcli_utils.py          # nmcli command wrappers
 │   ├── qr_utils.py             # QR code utilities
 │   ├── dialogs.py             # GTK dialogs
 │   ├── hotspot_utils.py        # Hotspot utilities
-│   └── hotspot_dialog.py       # Hotspot page
-├── icons/                        # Bundled SVG icons
-│   ├── hotspot-rectangles-symbolic.svg
-│   ├── qr-code-scanner-symbolic.svg
-│   ├── plug-symbolic.svg
-│   ├── unplug-dots-symbolic.svg
-│   └── arrow-circular-bottom-right-symbolic.svg
-├── assets/                      # Screenshots
-│   ├── homepage.png
-│   ├── info.png
-│   ├── QR.png
-│   └── settings.png
+│   └── hotspot_dialog.py       # Hotspot configuration page
 ├── wifi-manager.sh              # YAD version
 ├── wifi-manager-zenity.sh       # Zenity version
-└── README.md
+└── wifi-manager.desktop         # Desktop entry
 ```
 
 ## Requirements
 
-| Component      | Ubuntu/Debian   | Arch Linux     |
-| -------------- | --------------- | -------------- |
-| Python         | python3         | python         |
-| GObject        | python3-gi      | python-gobject |
-| GTK            | gir1.2-gtk-3.0  | gtk3           |
-| nmcli          | nmcli           | nmcli          |
-| NetworkManager | network-manager | networkmanager |
-| QR Code        | qrencode        | qrencode       |
+| Component | Required For |
+|-----------|-------------|
+| Python 3 + GObject | wifi-manager.py |
+| YAD | wifi-manager.sh |
+| Zenity | wifi-manager-zenity.sh |
+| nmcli | All versions |
+| qrencode | QR code generation |
+| ImageMagick | QR display in YAD version |
 
 ## License
 
