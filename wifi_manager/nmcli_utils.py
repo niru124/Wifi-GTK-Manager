@@ -106,8 +106,52 @@ def forget_network(ssid):
     result, _ = run_cmd(["nmcli", "connection", "delete", ssid])
     return result == ""
 
+def get_saved_connections():
+    """Get list of saved WiFi connection profiles (not currently connected)"""
+    output, _ = run_cmd(["nmcli", "-t", "connection", "show"])
+    current_conn = get_current_connection_name()
+    current_ssid = get_current_ssid()
+    saved = []
+    
+    for line in output.split("\n"):
+        if "802-11-wireless:" in line:
+            conn_name = line.split(":")[0]
+            # Skip if this is the currently active connection
+            if conn_name == current_conn:
+                continue
+            # Get SSID for this connection
+            conn_output, _ = run_cmd(["nmcli", "-t", "connection", "show", conn_name])
+            ssid = ""
+            for conn_line in conn_output.split("\n"):
+                if "802-11-wireless.ssid:" in conn_line:
+                    ssid = conn_line.split(":")[1]
+                    break
+            if ssid and conn_name not in [s["name"] for s in saved]:
+                saved.append({"name": conn_name, "ssid": ssid})
+    
+    return saved
+
+def get_last_connected():
+    """Get the last connected network (returns first saved connection with password)"""
+    saved = get_saved_connections()
+    for conn in saved:
+        # Check if this connection has a saved password
+        password = get_password(conn["name"])
+        if password:
+            return conn["ssid"]
+    # If no saved password found, return first saved connection
+    if saved:
+        return saved[0]["ssid"]
+    return None
+
 def connect_network(ssid, password, security):
     """Connect to a WiFi network"""
+    # First try using connection profile if it exists
+    result, success = run_cmd(["nmcli", "connection", "up", ssid])
+    if success:
+        return True
+    
+    # If that fails, try direct connection
     cmd = ["nmcli", "device", "wifi", "connect", ssid]
     if security != "Open" and password:
         cmd.extend(["password", password])

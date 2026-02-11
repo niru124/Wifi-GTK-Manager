@@ -60,6 +60,36 @@ def get_show_live_speed():
     """Get whether to show live speed"""
     return load_settings().get("show_live_speed", True)
 
+# Icon directory path (relative to package)
+ICONS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons")
+
+# Mapping of logical icon names to SVG files
+SVG_ICON_MAP = {
+    "hotspot": "hotspot-rectangles-symbolic.svg",
+    "qr-code": "qr-code-scanner-symbolic.svg",
+    "connect": "plug-symbolic.svg",
+    "disconnect": "unplug-dots-symbolic.svg",
+    "refresh": "arrow-circular-bottom-right-symbolic.svg",
+}
+
+def load_svg_icon(icon_name, size=16):
+    """Load an SVG icon from the bundled icons directory"""
+    svg_file = SVG_ICON_MAP.get(icon_name)
+    if not svg_file:
+        return create_icon_image("dialog-information-symbolic", size)
+    
+    svg_path = os.path.join(ICONS_DIR, svg_file)
+    if not os.path.exists(svg_path):
+        return create_icon_image("dialog-information-symbolic", size)
+    
+    image = Gtk.Image()
+    try:
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(svg_path, size, size, True)
+        image.set_from_pixbuf(pixbuf)
+    except:
+        return create_icon_image("dialog-information-symbolic", size)
+    return image
+
 # Icon names for network status
 ICON_NETWORK = "network-wireless-symbolic"
 ICON_NETWORK_OFFLINE = "network-wireless-disconnected-symbolic"

@@ -5,6 +5,7 @@ Requires: python3, pygi, nmcli, qrencode
 """
 
 import gi
+import os
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib
 
@@ -19,7 +20,8 @@ from .nmcli_utils import (
     get_live_speed,
     format_speed,
     is_wifi_enabled,
-    set_wifi_enabled
+    set_wifi_enabled,
+    get_last_connected
 )
 from .dialogs import (
     show_qr_dialog,
@@ -29,6 +31,7 @@ from .dialogs import (
     show_forget_confirm_dialog,
     show_message_dialog,
     create_icon_image,
+    load_svg_icon,
     get_icon_for_signal,
     get_show_live_speed
 )
@@ -96,7 +99,7 @@ class WiFiManager(Gtk.Window):
         # Hotspot button with icon
         btn_hotspot = Gtk.Button()
         btn_hotspot.set_tooltip_text("Hotspot")
-        hotspot_icon = create_icon_image("network-wireless-hotspot-symbolic")
+        hotspot_icon = load_svg_icon("hotspot", 16)
         btn_hotspot.add(hotspot_icon)
         btn_hotspot.connect("clicked", self._on_show_hotspot)
         header_box.pack_start(btn_hotspot, False, False, 0)
@@ -241,7 +244,7 @@ class WiFiManager(Gtk.Window):
         # Refresh button
         self.btn_refresh = Gtk.Button()
         self.btn_refresh.set_tooltip_text("Refresh")
-        refresh_icon = create_icon_image("view-refresh-symbolic")
+        refresh_icon = load_svg_icon("refresh", 16)
         self.btn_refresh.add(refresh_icon)
         self.btn_refresh.connect("clicked", self._on_refresh)
         btn_box.pack_start(self.btn_refresh, True, True, 0)
@@ -249,7 +252,7 @@ class WiFiManager(Gtk.Window):
         # Connect button
         btn_connect = Gtk.Button()
         btn_connect.set_tooltip_text("Connect")
-        connect_icon = create_icon_image("network-connect-symbolic")
+        connect_icon = load_svg_icon("connect", 16)
         btn_connect.add(connect_icon)
         btn_connect.connect("clicked", self._on_connect)
         btn_box.pack_start(btn_connect, True, True, 0)
@@ -257,7 +260,7 @@ class WiFiManager(Gtk.Window):
         # Disconnect button
         btn_disconnect = Gtk.Button()
         btn_disconnect.set_tooltip_text("Disconnect")
-        disconnect_icon = create_icon_image("network-disconnect-symbolic")
+        disconnect_icon = load_svg_icon("disconnect", 16)
         btn_disconnect.add(disconnect_icon)
         btn_disconnect.connect("clicked", self._on_disconnect)
         btn_box.pack_start(btn_disconnect, True, True, 0)
@@ -265,7 +268,7 @@ class WiFiManager(Gtk.Window):
         # QR Code button
         btn_qr = Gtk.Button()
         btn_qr.set_tooltip_text("QR Code")
-        qr_icon = create_icon_image("barcode-symbolic")
+        qr_icon = load_svg_icon("qr-code", 16)
         btn_qr.add(qr_icon)
         btn_qr.connect("clicked", self._on_show_qr)
         btn_box.pack_start(btn_qr, True, True, 0)
@@ -413,14 +416,51 @@ class WiFiManager(Gtk.Window):
         self.refresh_networks(show_animation=True)
     
     def _on_connect(self, widget):
-        """Handle connect button click"""
+        """Handle connect button click - try selected or last connected network"""
+        ssid = None
+        
+        # First, try to get currently selected network from the list
         selection = self.tree.get_selection()
         model, iter = selection.get_selected()
         if iter:
             ssid = model[iter][0]
-            self._connect_to_network(ssid)
         else:
-            self._update_status("Select a network to connect")
+            # If nothing selected, try to connect to current network if connected
+            current = get_current_ssid()
+            if current:
+                self._update_status(f"Already connected to {current}")
+                return
+            
+            # Try to find a visible saved network to connect to
+            networks = get_networks()
+            for net in networks:
+                if net.get('connected'):
+                    ssid = net['ssid']
+                    break
+            
+            # If still no network, try the last connected one
+            if not ssid:
+                last_connected = get_last_connected()
+                if last_connected:
+                    # Check if it's visible
+                    for net in networks:
+                        if net['ssid'] == last_connected:
+                            ssid = last_connected
+                            break
+            
+            if ssid:
+                self._update_status(f"Connecting to {ssid}...")
+            else:
+                self._update_status("No available networks")
+                return
+        
+        if ssid:
+            # Check if already connected to this network
+            current = get_current_ssid()
+            if current == ssid:
+                self._update_status(f"Already connected to {ssid}")
+                return
+            self._connect_to_network(ssid)
     
     def _connect_to_network(self, ssid):
         """Connect to a network"""
