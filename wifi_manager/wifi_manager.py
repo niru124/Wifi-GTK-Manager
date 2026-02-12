@@ -273,9 +273,11 @@ class WiFiManager(Gtk.Window):
         btn_box.set_margin_bottom(10)
         parent.pack_start(btn_box, False, False, 5)
         
-        # Refresh button with text
-        self.btn_refresh = Gtk.Button.new_with_label("Refresh")
+        # Refresh button with icon
+        self.btn_refresh = Gtk.Button()
         self.btn_refresh.set_tooltip_text("Refresh networks")
+        refresh_icon = load_svg_icon("refresh", 16)
+        self.btn_refresh.add(refresh_icon)
         self.btn_refresh.connect("clicked", self._on_refresh)
         btn_box.pack_start(self.btn_refresh, True, True, 0)
         
@@ -359,8 +361,8 @@ class WiFiManager(Gtk.Window):
             self.status_label.set_markup("<small><i>Scanning for networks...</i></small>")
         else:
             self.spinner.stop()
-            # Restore refresh button text
-            self.btn_refresh.set_label("Refresh")
+            # Restore refresh icon
+            self.btn_refresh.set_label("")
     
     def _update_status(self, message):
         """Update status label"""

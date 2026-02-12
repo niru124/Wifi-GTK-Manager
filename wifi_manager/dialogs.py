@@ -69,7 +69,7 @@ SVG_ICON_MAP = {
     "qr-code": "qr-code-scanner-symbolic.svg",
     "connect": "plug-symbolic.svg",
     "disconnect": "unplug-dots-symbolic.svg",
-    "refresh": "circle-outline-thick-symbolic.svg",
+    "refresh": "arrow-circular-bottom-right-symbolic.svg",
 }
 
 def load_svg_icon(icon_name, size=16):
