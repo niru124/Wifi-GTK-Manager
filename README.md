@@ -36,7 +36,7 @@ sudo pacman -S networkmanager nmcli qrencode python-gobject gtk3
 ### Setup
 
 ```bash
-cd /home/nirantar/Downloads/nm-applet/wifi-gtk
+cd /path/to/nm-applet/wifi-gtk
 chmod +x wifi-manager.py
 ```
 
