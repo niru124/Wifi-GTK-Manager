@@ -111,9 +111,9 @@ class HotspotPage(Gtk.Box):
         lbl_info2.set_xalign(0)
         info_box.pack_start(lbl_info2, False, False, 0)
         
-        btn_stop = Gtk.Button.new_with_label("■ Stop Hotspot")
-        btn_stop.connect("clicked", self._on_stop_hotspot)
-        saved_box.pack_start(btn_stop, False, False, 10)
+        self.btn_stop = Gtk.Button.new_with_label("■ Stop Hotspot")
+        self.btn_stop.connect("clicked", self._on_stop_hotspot)
+        saved_box.pack_start(self.btn_stop, False, False, 10)
     
     def _get_hotspot_status(self):
         """Check if hotspot is running"""
@@ -147,11 +147,15 @@ class HotspotPage(Gtk.Box):
             self.lbl_status.set_markup(f"<b>Status:</b> Running - '{conn_name}'")
             self.btn_toggle.set_label("■ Stop")
             self.btn_toggle.set_sensitive(True)
+            self.btn_stop.set_label("■ Stop Hotspot")
+            self.btn_stop.set_sensitive(True)
         else:
             self.status_icon.set_markup("○")
             self.lbl_status.set_markup("<b>Status:</b> Not running")
             self.btn_toggle.set_label("▶ Start Hotspot")
             self.btn_toggle.set_sensitive(True)
+            self.btn_stop.set_label("■ Stop Hotspot")
+            self.btn_stop.set_sensitive(False)
     
     def _on_toggle_hotspot(self, widget):
         if self.hotspot_running:
