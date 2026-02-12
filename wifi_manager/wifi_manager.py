@@ -188,9 +188,26 @@ class WiFiManager(Gtk.Window):
         return True
     
     def _setup_main_network_list(self, parent):
-        """Setup the network list treeview"""
+        """Setup the network list treeview with search"""
+        # Search box
+        search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        search_box.set_margin_start(10)
+        search_box.set_margin_end(10)
+        search_box.set_margin_top(5)
+        parent.pack_start(search_box, False, False, 0)
+        
+        search_icon = Gtk.Image.new_from_icon_name("system-search-symbolic", Gtk.IconSize.BUTTON)
+        search_box.pack_start(search_icon, False, False, 0)
+        
+        self.search_entry = Gtk.SearchEntry()
+        self.search_entry.set_placeholder_text("Search networks...")
+        self.search_entry.connect("search-changed", self._on_search_changed)
+        search_box.pack_start(self.search_entry, True, True, 0)
+        
+        # Network list
         self.store = Gtk.ListStore(str, str, str, bool)
-        self.tree = Gtk.TreeView(model=self.store)
+        self.store_filtered = self.store.filter_new()
+        self.tree = Gtk.TreeView(model=self.store_filtered)
         
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Network", renderer, text=0)
@@ -214,6 +231,21 @@ class WiFiManager(Gtk.Window):
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled.add(self.tree)
         parent.pack_start(scrolled, True, True, 0)
+        
+        # Set up filter function
+        self.store_filtered.set_visible_func(self._filter_networks)
+    
+    def _on_search_changed(self, entry):
+        """Handle search text changes"""
+        self.store_filtered.refilter()
+    
+    def _filter_networks(self, model, iter, data):
+        """Filter networks based on search text"""
+        search_text = self.search_entry.get_text().lower()
+        if not search_text:
+            return True
+        ssid = model[iter][0].lower()
+        return search_text in ssid
     
     def _setup_main_sort_box(self, parent):
         """Setup the sort options"""
@@ -241,11 +273,9 @@ class WiFiManager(Gtk.Window):
         btn_box.set_margin_bottom(10)
         parent.pack_start(btn_box, False, False, 5)
         
-        # Refresh button
-        self.btn_refresh = Gtk.Button()
-        self.btn_refresh.set_tooltip_text("Refresh")
-        refresh_icon = load_svg_icon("refresh", 16)
-        self.btn_refresh.add(refresh_icon)
+        # Refresh button with text
+        self.btn_refresh = Gtk.Button.new_with_label("Refresh")
+        self.btn_refresh.set_tooltip_text("Refresh networks")
         self.btn_refresh.connect("clicked", self._on_refresh)
         btn_box.pack_start(self.btn_refresh, True, True, 0)
         
@@ -329,10 +359,8 @@ class WiFiManager(Gtk.Window):
             self.status_label.set_markup("<small><i>Scanning for networks...</i></small>")
         else:
             self.spinner.stop()
-            # Restore refresh icon
-            self.btn_refresh.remove(self.btn_refresh.get_child())
-            refresh_icon = load_svg_icon("refresh", 16)
-            self.btn_refresh.add(refresh_icon)
+            # Restore refresh button text
+            self.btn_refresh.set_label("Refresh")
     
     def _update_status(self, message):
         """Update status label"""
@@ -479,14 +507,21 @@ class WiFiManager(Gtk.Window):
         self._set_refreshing(True)
         
         if connect_network(ssid, password, security):
-            self._update_status("Connected!")
+            self._update_status(f"Connected to {ssid}!")
+            # Refresh immediately to show new connection status
+            self.refresh_networks(show_animation=False)
+            # Update UI to reflect connection change
+            current = get_current_ssid()
+            if current:
+                self.current_label.set_text(f" {current}")
             show_message_dialog(
                 self, "Connected",
                 f"Successfully connected to {ssid}",
                 Gtk.MessageType.INFO
             )
+            # Refresh again after dialog closes to ensure UI is updated
             GLib.timeout_add(
-                500,
+                100,
                 lambda: self.refresh_networks(show_animation=False)
             )
         else:
@@ -540,34 +575,112 @@ class WiFiManager(Gtk.Window):
             self._update_speed_display()
     
     def _on_forget(self, widget):
-        """Handle forget button click"""
-        selection = self.tree.get_selection()
-        model, iter = selection.get_selected()
+        """Handle forget button click - show dialog to select from all saved networks"""
+        from .nmcli_utils import get_saved_connections, forget_network
         
-        if not iter:
+        saved = get_saved_connections()
+        
+        if not saved:
             show_message_dialog(
-                self, "No Network Selected",
-                "Select a network to forget",
-                Gtk.MessageType.WARNING
+                self, "No Saved Networks",
+                "No saved networks to forget",
+                Gtk.MessageType.INFO
             )
             return
         
-        ssid = model[iter][0]
+        # Create dialog to select network to forget
+        dialog = Gtk.Dialog(
+            title="Forget Network",
+            transient_for=self,
+            modal=True
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Forget", Gtk.ResponseType.OK)
+        dialog.set_default_size(350, 450)
         
-        if show_forget_confirm_dialog(self, ssid):
-            from .nmcli_utils import forget_network
-            if forget_network(ssid):
-                self._update_status(f"Forgot {ssid}")
-                GLib.timeout_add(
-                    300,
-                    lambda: self.refresh_networks(show_animation=False)
-                )
-            else:
-                show_message_dialog(
-                    self, "Error",
-                    f"Could not forget {ssid}",
-                    Gtk.MessageType.ERROR
-                )
+        box = dialog.get_content_area()
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+        box.set_margin_top(20)
+        box.set_margin_bottom(20)
+        
+        lbl = Gtk.Label(label="Select a network to forget:")
+        lbl.set_xalign(0)
+        box.pack_start(lbl, False, False, 5)
+        
+        # Search entry
+        search_entry = Gtk.SearchEntry()
+        search_entry.set_placeholder_text("Search networks...")
+        box.pack_start(search_entry, False, False, 5)
+        
+        # Create list of saved networks
+        self.forget_store = Gtk.ListStore(str, str)  # SSID, Profile Name
+        self.forget_store_filtered = self.forget_store.filter_new()
+        current = get_current_ssid()
+        
+        for conn in saved:
+            ssid = conn['ssid']
+            name = conn['name']
+            self.forget_store.append([ssid, name])
+        
+        def on_search_changed(entry):
+            search_text = entry.get_text().lower()
+            self.forget_store_filtered.refilter()
+        
+        def filter_func(model, iter, data):
+            search_text = search_entry.get_text().lower()
+            if not search_text:
+                return True
+            ssid = model[iter][0].lower()
+            return search_text in ssid
+        
+        self.forget_store_filtered.set_visible_func(filter_func)
+        search_entry.connect("search-changed", on_search_changed)
+        
+        tree = Gtk.TreeView(model=self.forget_store_filtered)
+        tree.set_headers_visible(False)
+        
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Network", renderer, text=0)
+        tree.append_column(column)
+        
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_min_content_height(200)
+        scrolled.add(tree)
+        box.pack_start(scrolled, True, True, 10)
+        
+        # Show current connection info
+        if current:
+            lbl_current = Gtk.Label(label=f"Currently connected to: {current}")
+            lbl_current.set_xalign(0)
+            box.pack_start(lbl_current, False, False, 5)
+        
+        box.show_all()
+        
+        response = dialog.run()
+        
+        if response == Gtk.ResponseType.OK:
+            selection = tree.get_selection()
+            model, iter = selection.get_selected()
+            if iter:
+                ssid = model[iter][0]
+                profile_name = model[iter][1]
+                
+                if show_forget_confirm_dialog(self, ssid):
+                    if forget_network(profile_name):
+                        self._update_status(f"Forgot {ssid}")
+                        GLib.timeout_add(
+                            300,
+                            lambda: self.refresh_networks(show_animation=False)
+                        )
+                    else:
+                        show_message_dialog(
+                            self, "Error",
+                            f"Could not forget {ssid}",
+                            Gtk.MessageType.ERROR
+                        )
+        
+        dialog.destroy()
     
     def _on_disconnect(self, widget):
         """Handle disconnect button click"""

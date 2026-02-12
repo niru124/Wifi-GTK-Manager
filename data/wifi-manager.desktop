@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=WiFi GTK Manager
+Comment=Native GTK3 WiFi manager with NetworkManager integration
+Exec=wifi-manager-gtk
+Icon=wifi-manager
+Terminal=false
+Type=Application
+Categories=Network;Settings;
+Keywords=wifi;wireless;network;manager;nmcli;
+StartupNotify=true

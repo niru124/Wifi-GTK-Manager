@@ -103,8 +103,8 @@ def set_auto_connect(ssid, enabled):
 
 def forget_network(ssid):
     """Remove a saved network profile"""
-    result, _ = run_cmd(["nmcli", "connection", "delete", ssid])
-    return result == ""
+    _, success = run_cmd(["nmcli", "connection", "delete", ssid])
+    return success
 
 def get_saved_connections():
     """Get list of saved WiFi connection profiles (not currently connected)"""
