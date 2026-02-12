@@ -427,27 +427,29 @@ class WiFiManager(Gtk.Window):
                 self._update_status(f"Already connected to {current}")
                 return
             
-            # Try to find a visible saved network to connect to
+            # Get currently visible networks
             networks = get_networks()
-            for net in networks:
-                if net.get('connected'):
-                    ssid = net['ssid']
-                    break
+            visible_ssids = {net['ssid'] for net in networks if net['ssid']}
             
-            # If still no network, try the last connected one
-            if not ssid:
-                last_connected = get_last_connected()
-                if last_connected:
-                    # Check if it's visible
-                    for net in networks:
-                        if net['ssid'] == last_connected:
-                            ssid = last_connected
-                            break
+            # Get saved connections
+            from .nmcli_utils import get_saved_connections, get_password
+            saved = get_saved_connections()
+            
+            # Try to find a visible saved network with password
+            ssid = None
+            for conn in saved:
+                conn_ssid = conn['ssid']
+                # Only consider networks that are currently visible
+                if conn_ssid in visible_ssids:
+                    # Check if we have a password for this network
+                    if get_password(conn['name']):
+                        ssid = conn_ssid
+                        break
             
             if ssid:
                 self._update_status(f"Connecting to {ssid}...")
             else:
-                self._update_status("No available networks")
+                self._update_status("No available networks with saved passwords")
                 return
         
         if ssid:
