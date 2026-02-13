@@ -33,16 +33,23 @@ sudo apt install network-manager nmcli qrencode python3-gi python3-gi-cairo gir1
 sudo pacman -S networkmanager nmcli qrencode python-gobject gtk3
 ```
 
-### Setup
+### System-wide Installation (Recommended)
+
+```bash
+cd /path/to/nm-applet/wifi-gtk
+chmod +x install.sh
+sudo ./install.sh
+```
+
+Then launch via:
+- Run `wifi-manager-gtk` from terminal
+- Or search for "WiFi GTK Manager" in your applications menu
+
+### Local Setup
 
 ```bash
 cd /path/to/nm-applet/wifi-gtk
 chmod +x wifi-manager.py
-```
-
-## Usage
-
-```bash
 python3 wifi-manager.py
 ```
 
