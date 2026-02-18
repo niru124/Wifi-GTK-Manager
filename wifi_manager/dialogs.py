@@ -387,7 +387,7 @@ def show_settings_dialog(parent):
         switch.set_name("autoconnect")
 
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        icon = create_icon_image("sync-symbolic")
+        icon = load_svg_icon("auto", 16)
         hbox.pack_start(icon, False, False, 0)
 
         label_switch = Gtk.Label(label=f"Auto-connect to {current_ssid}")
@@ -405,7 +405,7 @@ def show_settings_dialog(parent):
     box.pack_start(label_speed, False, False, 10)
 
     hbox_speed = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-    icon = create_icon_image("transmit-symbolic")
+    icon = load_svg_icon("speed-toggle", 16)
     hbox_speed.pack_start(icon, False, False, 0)
 
     label_speed_set = Gtk.Label(label="Show live TX/RX speed in header")
