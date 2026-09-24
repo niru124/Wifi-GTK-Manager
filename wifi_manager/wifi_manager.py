@@ -72,7 +72,25 @@ class WiFiManager(Gtk.Window):
         self._setup_main_sort_box(self.main_box)
         self._setup_main_button_box(self.main_box)
 
+        # Hotspot page (generic: wifi/ethernet uplink, band, live clients)
+        from .hotspot_dialog import show_hotspot_page
+        self.hotspot_page = show_hotspot_page(self, self._show_wifi_page)
+        self.stack.add_named(self.hotspot_page, "hotspot")
+
         self.stack.set_visible_child_name("wifi")
+
+    def _show_hotspot_page(self):
+        """Switch to the hotspot page and refresh it."""
+        try:
+            self.hotspot_page.refresh_all()
+        except Exception:
+            pass
+        self.stack.set_visible_child_name("hotspot")
+
+    def _show_wifi_page(self):
+        """Back to the main WiFi list."""
+        self.stack.set_visible_child_name("wifi")
+        self.refresh_networks(show_animation=False)
 
     def _setup_main_header(self, parent):
         """Setup the header section"""
@@ -290,6 +308,14 @@ class WiFiManager(Gtk.Window):
         btn_info.add(info_icon)
         btn_info.connect("clicked", lambda w: show_connection_info_dialog(self))
         btn_box.pack_start(btn_info, True, True, 0)
+
+        # Hotspot button
+        btn_hotspot = Gtk.Button()
+        btn_hotspot.set_tooltip_text("Hotspot (share WiFi/Ethernet)")
+        hotspot_icon = load_svg_icon("hotspot", 16)
+        btn_hotspot.add(hotspot_icon)
+        btn_hotspot.connect("clicked", lambda w: self._show_hotspot_page())
+        btn_box.pack_start(btn_hotspot, True, True, 0)
 
         # Forget button
         btn_forget = Gtk.Button()

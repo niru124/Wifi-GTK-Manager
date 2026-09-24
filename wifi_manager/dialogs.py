@@ -71,6 +71,7 @@ ICONS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons")
 # Mapping of logical icon names to SVG files
 SVG_ICON_MAP = {
     "verified": "verified-checkmark-symbolic.svg",
+    "hotspot": "hotspot-rectangles-symbolic.svg",
     "qr-code": "qr-code-scanner-symbolic.svg",
     "connect": "plug-symbolic.svg",
     "disconnect": "unplug-dots-symbolic.svg",
