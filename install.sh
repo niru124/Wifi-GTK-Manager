@@ -19,6 +19,14 @@ fi
 # Create installation directory
 sudo mkdir -p "$INSTALL_DIR"
 
+# Fail early if run from the wrong directory
+for src in wifi_manager wifi-manager.py icons "data/wifi-manager.desktop"; do
+    if [ ! -e "$src" ]; then
+        echo "Error: '$src' not found. Run install.sh from the project root."
+        exit 1
+    fi
+done
+
 # Copy application files
 sudo cp -r wifi_manager "$INSTALL_DIR/"
 sudo cp wifi-manager.py "$INSTALL_DIR/"

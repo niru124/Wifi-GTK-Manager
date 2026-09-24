@@ -33,13 +33,16 @@ uninstall() {
 
 		# Remove icons, handling potential globbing and non-existence gracefully
 		for glob_path in "${ICON_GLOBS[@]}"; do
-			echo "Attempting to remove icons matching: $glob_path"
-			# Use 'ls' to check if any files match the glob before attempting to remove
-			if ls $glob_path >/dev/null 2>&1; then
-				if sudo rm -f $glob_path; then # Use -f for files
-					echo "Successfully removed icons matching: $glob_path"
+			# nullglob expansion: no ls probe, no word splitting
+			shopt -s nullglob
+			icon_files=(/usr/share/icons/hicolor/*/apps/wifi-manager.png)
+			shopt -u nullglob
+			if [ "${#icon_files[@]}" -gt 0 ]; then
+				echo "Attempting to remove ${#icon_files[@]} icon(s)..."
+				if sudo rm -f "${icon_files[@]}"; then
+					echo "Successfully removed icons."
 				else
-					echo "Failed to remove icons matching: $glob_path." >&2
+					echo "Failed to remove icons." >&2
 				fi
 			else
 				echo "No icons found matching: $glob_path."
